@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Nifty 50 Impact Terminal</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">N50<span>/</span>IMPACT</a>
+    <div class="top-status">
+      <span id="marketStatus" class="status">MARKET</span>
+      <span id="socketStatus" class="connection">CONNECTING</span>
+      <time id="timestamp">Waiting for feed</time>
+    </div>
+  </header>
+
+  <main>
+    <section class="index-strip" aria-label="Index summary">
+      <div class="primary-quote">
+        <p>NIFTY 50</p>
+        <strong id="indexLevel">--</strong>
+        <span id="indexChange">--</span>
+      </div>
+      <div class="metric"><span>Weighted basket</span><strong id="syntheticLevel">--</strong><small id="tracking">Tracking --</small></div>
+      <div class="metric"><span>15 min nowcast</span><strong id="forecastPoints">--</strong><small id="forecastRange">Range --</small></div>
+      <div class="metric"><span>Model confidence</span><strong id="confidence">--</strong><small id="momentum">Momentum --</small></div>
+      <div class="metric"><span>Market breadth</span><strong id="breadth">--</strong><small id="breadthScore">Score --</small></div>
+    </section>
+
+    <section class="workspace">
+      <article class="chart-panel">
+        <div class="panel-heading">
+          <div><span>LIVE ATTRIBUTION</span><h1>Who is moving the index?</h1></div>
+          <div class="legend"><i class="line-actual"></i>Official <i class="line-model"></i>Weighted basket</div>
+        </div>
+        <canvas id="indexChart" aria-label="Live Nifty and weighted basket chart"></canvas>
+        <div class="chart-footer">
+          <span id="attributedPoints">Attributed --</span>
+          <span id="absoluteImpact">Gross impact --</span>
+          <span id="concentration">Top 5 concentration --</span>
+        </div>
+      </article>
+
+      <aside class="forecast-panel">
+        <span>STATISTICAL NOWCAST</span>
+        <div id="forecastDirection" class="forecast-direction">WAITING</div>
+        <p id="forecastNarrative">The model needs a complete market snapshot.</p>
+        <div class="forecast-band"><div id="confidenceBar"></div></div>
+        <dl>
+          <div><dt>Lower bound</dt><dd id="lowerBound">--</dd></div>
+          <div><dt>Upper bound</dt><dd id="upperBound">--</dd></div>
+          <div><dt>Dispersion</dt><dd id="dispersion">--</dd></div>
+          <div><dt>Coverage</dt><dd id="coverage">--</dd></div>
+        </dl>
+        <p class="model-note">Nowcast, not investment advice. Prediction bands are statistical estimates, not guaranteed levels.</p>
+      </aside>
+    </section>
+
+    <section class="impact-grid">
+      <article class="impact-list">
+        <div class="panel-heading"><div><span>CONSTITUENT IMPACT</span><h2>Leaders and drags</h2></div><input id="stockSearch" type="search" placeholder="Filter symbol" aria-label="Filter stocks"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Stock</th><th>Weight</th><th>Price</th><th>Day</th><th>Nifty pts</th><th>Impact</th><th>5m</th><th>Signal</th></tr></thead>
+            <tbody id="stockRows"><tr><td colspan="8" class="empty">Waiting for analytics socket</td></tr></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="sector-panel">
+        <div class="panel-heading"><div><span>SECTOR MAP</span><h2>Contribution by sector</h2></div></div>
+        <div id="sectorRows" class="sector-rows"></div>
+      </article>
+    </section>
+
+    <section class="methodology">
+      <div><span>ENGINE LOGIC</span><h2>Transparent calculations</h2></div>
+      <div class="formula-grid">
+        <article><b>01</b><h3>Stock return</h3><code>rᵢ = Pᵢ / Pᵢ,prev − 1</code><p>Live price relative to the previous trading close.</p></article>
+        <article><b>02</b><h3>Index attribution</h3><code>pointsᵢ = NIFTYprev × wᵢ × rᵢ</code><p>Normalized free-float weight converts each return into estimated index points.</p></article>
+        <article><b>03</b><h3>Basket reconstruction</h3><code>N̂ = NIFTYprev × (1 + Σwᵢrᵢ)</code><p>The model basket is compared with Dhan's official Nifty level to expose tracking difference.</p></article>
+        <article><b>04</b><h3>15 minute nowcast</h3><code>μ = .65(.50R₅×3 + .30R₁₅ + .20R₆₀÷4) + breadth</code><p>Short momentum is projected, breadth-confirmed, volatility-bounded, and capped at ±1.5%.</p></article>
+      </div>
+    </section>
+  </main>
+  <script src="/dashboard.js" defer></script>
+</body>
+</html>
