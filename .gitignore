@@ -4,6 +4,8 @@ target/
 *.log
 dashboard-test.png
 dashboard-mobile-test.png
+analysis-test.png
+analysis-mobile-test.png
 .agents/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

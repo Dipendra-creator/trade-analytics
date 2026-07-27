@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Live Nifty 50 constituent attribution, sector impact, breadth, momentum, and forecast diagnostics.">
+  <title>Deep Analysis | N50 Impact</title>
+  <link rel="stylesheet" href="/analysis.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">N50<span>/</span>IMPACT</a>
+    <nav class="primary-nav" aria-label="Primary navigation">
+      <a href="/">Overview</a>
+      <a class="active" href="/analysis.html" aria-current="page">Deep analysis</a>
+    </nav>
+    <div class="live-meta" aria-live="polite">
+      <span id="marketState">MARKET</span>
+      <span id="connectionState" class="connection">CONNECTING</span>
+      <time id="updatedAt">Waiting for feed</time>
+    </div>
+  </header>
+
+  <main class="analysis-shell">
+    <section class="page-intro">
+      <div>
+        <p class="eyebrow">NIFTY 50 RESEARCH WORKSPACE</p>
+        <h1>Read the index from<br>the constituent level.</h1>
+        <p class="intro-copy">Live attribution, breadth, sector flow, momentum structure, forecast diagnostics, and all 50 stock drivers in one inspectable view.</p>
+      </div>
+      <div class="intro-actions">
+        <button id="exportButton" type="button" disabled>Export snapshot</button>
+        <p id="dataFreshness">No market snapshot received</p>
+      </div>
+    </section>
+
+    <section id="feedNotice" class="feed-notice loading" aria-live="polite">
+      <strong>Establishing analytics feed</strong>
+      <span>The page will populate after the first WebSocket snapshot.</span>
+    </section>
+
+    <section class="quote-grid" aria-label="Index state">
+      <article class="quote-primary">
+        <span>OFFICIAL NIFTY 50</span>
+        <strong id="indexLevel">--</strong>
+        <p id="indexChange">--</p>
+      </article>
+      <article><span>PREVIOUS CLOSE</span><strong id="previousClose">--</strong><small>Official reference</small></article>
+      <article><span>WEIGHTED BASKET</span><strong id="syntheticLevel">--</strong><small id="trackingDifference">Tracking --</small></article>
+      <article><span>ATTRIBUTED MOVE</span><strong id="attributedMove">--</strong><small id="attributionCoverage">Coverage --</small></article>
+      <article><span>15 MIN TARGET</span><strong id="forecastTarget">--</strong><small id="forecastExpected">Expected --</small></article>
+      <article><span>MODEL CONFIDENCE</span><strong id="confidence">--</strong><small id="forecastDirection">Waiting</small></article>
+    </section>
+
+    <section class="analysis-grid">
+      <article class="panel driver-panel">
+        <header class="panel-header">
+          <div><span>CONTRIBUTION LADDER</span><h2>What is moving Nifty now</h2></div>
+          <div class="legend"><i class="up"></i>Lifting <i class="down"></i>Dragging</div>
+        </header>
+        <canvas id="contributionChart" role="img" aria-label="Top positive and negative stock contribution points"></canvas>
+        <div class="panel-stats">
+          <div><span>Gross impact</span><strong id="grossImpact">--</strong></div>
+          <div><span>Net attributed</span><strong id="netImpact">--</strong></div>
+          <div><span>Cancellation</span><strong id="cancellationRatio">--</strong></div>
+          <div><span>Top 5 share</span><strong id="topFiveShare">--</strong></div>
+        </div>
+      </article>
+
+      <aside class="panel regime-panel">
+        <header class="panel-header"><div><span>MARKET REGIME</span><h2 id="regimeTitle">Waiting for data</h2></div></header>
+        <p id="regimeNarrative" class="regime-copy">Breadth and contribution structure will appear with the first live snapshot.</p>
+        <div class="breadth-meter" aria-label="Market breadth scale">
+          <div class="breadth-axis"><span>Broad selling</span><span>Balanced</span><span>Broad buying</span></div>
+          <div class="breadth-track"><div id="breadthNeedle"></div></div>
+        </div>
+        <dl class="regime-list">
+          <div><dt>Advancers</dt><dd id="advancers">--</dd></div>
+          <div><dt>Decliners</dt><dd id="decliners">--</dd></div>
+          <div><dt>Unchanged</dt><dd id="unchanged">--</dd></div>
+          <div><dt>Breadth score</dt><dd id="breadthScore">--</dd></div>
+          <div><dt>5m dispersion</dt><dd id="dispersion">--</dd></div>
+        </dl>
+      </aside>
+    </section>
+
+    <section class="diagnostic-grid">
+      <article class="panel forecast-panel">
+        <header class="panel-header">
+          <div><span>FORECAST DIAGNOSTICS</span><h2>How the 15 minute view is formed</h2></div>
+          <strong id="forecastBadge" class="direction-badge">WAITING</strong>
+        </header>
+        <div class="forecast-range">
+          <div class="range-labels"><span id="lowerBound">--</span><strong id="rangeCenter">--</strong><span id="upperBound">--</span></div>
+          <div class="range-track"><i id="rangeCurrent"></i><b id="rangeExpected"></b></div>
+          <div class="range-caption"><span>LOWER BAND</span><span>EXPECTED</span><span>UPPER BAND</span></div>
+        </div>
+        <div class="decomposition">
+          <div><span>Projected momentum</span><strong id="momentumScore">--</strong><small id="momentumPoints">-- estimated points</small></div>
+          <div><span>Breadth adjustment</span><strong id="breadthAdjustment">--</strong><small>Residual after momentum</small></div>
+          <div><span>Prediction width</span><strong id="predictionWidth">--</strong><small>Dispersion based band</small></div>
+          <div><span>Confidence</span><strong id="diagnosticConfidence">--</strong><small>Agreement and breadth</small></div>
+        </div>
+      </article>
+
+      <article class="panel sector-panel">
+        <header class="panel-header"><div><span>SECTOR ATTRIBUTION</span><h2>Where the index pressure sits</h2></div></header>
+        <div id="sectorRows" class="sector-rows"><p class="empty-state">Waiting for sector data</p></div>
+      </article>
+    </section>
+
+    <section class="panel explorer-panel">
+      <header class="explorer-header">
+        <div><span>CONSTITUENT RESEARCH</span><h2>Every stock, every model input</h2><p>Choose a row to inspect its return curve and contribution profile.</p></div>
+        <div class="controls">
+          <label><span>Search</span><input id="stockSearch" type="search" placeholder="Symbol or company"></label>
+          <label><span>Sector</span><select id="sectorFilter"><option value="">All sectors</option></select></label>
+          <label><span>Signal</span><select id="signalFilter"><option value="">All signals</option><option>LIFTING</option><option>DRAGGING</option><option>NEUTRAL</option></select></label>
+          <label><span>Sort</span><select id="sortBy"><option value="impact">Absolute impact</option><option value="contribution">Contribution</option><option value="day">Day return</option><option value="weight">Weight</option><option value="risk">Risk score</option><option value="rank">Index rank</option></select></label>
+        </div>
+      </header>
+      <div class="table-summary"><span id="visibleCount">0 stocks</span><span>Click any row for full diagnostics</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Rank / stock</th><th>Sector</th><th>Weight</th><th>Price</th><th>Prev close</th><th>Day</th><th>5m</th><th>15m</th><th>60m</th><th>Nifty pts</th><th>Impact</th><th>Risk</th><th>Signal</th></tr></thead>
+          <tbody id="stockRows"><tr><td colspan="13" class="empty-state">Waiting for analytics feed</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="method-panel">
+      <div><span>MODEL INTERPRETATION</span><h2>Read the output with the right limits.</h2></div>
+      <div class="method-columns">
+        <p><strong>Attribution is deterministic.</strong> Stored constituent weights convert each stock’s return from previous close into estimated Nifty points.</p>
+        <p><strong>Tracking difference is explicit.</strong> Official Nifty level minus the reconstructed basket highlights divisor, weight drift, timing, and data effects.</p>
+        <p><strong>The nowcast is heuristic.</strong> It blends 5m, 15m, and 60m weighted momentum with breadth and dispersion. It is not a trade recommendation.</p>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="stockDialog" class="stock-dialog">
+    <button id="closeDialog" class="dialog-close" type="button" aria-label="Close stock detail">Close</button>
+    <div id="stockDetail"></div>
+  </dialog>
+
+  <script src="/analysis.js" defer></script>
+</body>
+</html>
