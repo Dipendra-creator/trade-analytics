@@ -20,6 +20,7 @@ public class AppSettingsService {
     private final SecretCipher cipher;
     private final DhanProperties dhanProperties;
     private final DhanLiveFeedService liveFeedService;
+    private volatile Optional<String> cachedOpenAiApiKey = Optional.empty();
 
     public AppSettingsService(AppSettingRepository repository, SecretCipher cipher,
             DhanProperties dhanProperties, DhanLiveFeedService liveFeedService) {
@@ -30,8 +31,9 @@ public class AppSettingsService {
     }
 
     @PostConstruct
-    public void applyPersistedDhanToken() {
+    public void applyPersistedSettings() {
         read(DHAN_ACCESS_TOKEN).ifPresent(dhanProperties::setAccessToken);
+        cachedOpenAiApiKey = read(OPENAI_API_KEY).filter(AppSettingsService::configured);
     }
 
     @Transactional(readOnly = true)
@@ -46,7 +48,7 @@ public class AppSettingsService {
 
     @Transactional(readOnly = true)
     public Optional<String> getOpenAiApiKey() {
-        return read(OPENAI_API_KEY).filter(AppSettingsService::configured);
+        return cachedOpenAiApiKey;
     }
 
     @Transactional
@@ -65,8 +67,11 @@ public class AppSettingsService {
 
         if (request.clearOpenAiApiKey()) {
             write(OPENAI_API_KEY, "");
+            cachedOpenAiApiKey = Optional.empty();
         } else if (configured(request.openAiApiKey())) {
-            write(OPENAI_API_KEY, request.openAiApiKey().trim());
+            String value = request.openAiApiKey().trim();
+            write(OPENAI_API_KEY, value);
+            cachedOpenAiApiKey = Optional.of(value);
         }
 
         if (dhanChanged) {

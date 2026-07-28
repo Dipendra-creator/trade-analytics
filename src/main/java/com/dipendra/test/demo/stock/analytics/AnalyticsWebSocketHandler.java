@@ -19,18 +19,19 @@ import tools.jackson.databind.ObjectMapper;
 public class AnalyticsWebSocketHandler extends TextWebSocketHandler {
     private static final Logger log = LoggerFactory.getLogger(AnalyticsWebSocketHandler.class);
     private final Set<WebSocketSession> sessions = ConcurrentHashMap.newKeySet();
-    private final NiftyQuantEngine engine;
+    private final LiveAnalyticsService analytics;
     private final ObjectMapper objectMapper;
 
-    public AnalyticsWebSocketHandler(NiftyQuantEngine engine, ObjectMapper objectMapper) {
-        this.engine = engine;
+    public AnalyticsWebSocketHandler(LiveAnalyticsService analytics, ObjectMapper objectMapper) {
+        this.analytics = analytics;
         this.objectMapper = objectMapper;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        send(session, engine.calculate());
+        MarketAnalyticsSnapshot snapshot = analytics.latest().orElse(null);
+        if (snapshot != null) send(session, snapshot);
     }
 
     @Override
@@ -42,7 +43,9 @@ public class AnalyticsWebSocketHandler extends TextWebSocketHandler {
     public void publish() {
         if (sessions.isEmpty()) return;
         try {
-            String json = objectMapper.writeValueAsString(engine.calculate());
+            MarketAnalyticsSnapshot snapshot = analytics.latest().orElse(null);
+            if (snapshot == null) return;
+            String json = objectMapper.writeValueAsString(snapshot);
             sessions.removeIf(session -> !send(session, json));
         } catch (RuntimeException exception) {
             log.warn("Could not calculate live analytics: {}", exception.getMessage());

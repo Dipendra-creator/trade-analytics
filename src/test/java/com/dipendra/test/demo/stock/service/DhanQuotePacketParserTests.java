@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -39,5 +40,15 @@ class DhanQuotePacketParserTests {
         assertThat(quote.dayVolume()).isEqualTo(100_000);
         assertThat(quote.tradedAt()).isEqualTo(Instant.ofEpochSecond(1_785_124_800));
         assertThat(quote.dayHigh()).isEqualByComparingTo("1660.0");
+    }
+
+    @Test
+    void normalizesDhanMarketWallClockToActualInstant() {
+        Instant encodedMarketWallClock = Instant.parse("2026-07-28T12:41:58Z");
+
+        Instant normalized = DhanLiveFeedService.normalizeDhanTradeTime(
+                encodedMarketWallClock, ZoneId.of("Asia/Kolkata"));
+
+        assertThat(normalized).isEqualTo(Instant.parse("2026-07-28T07:11:58Z"));
     }
 }

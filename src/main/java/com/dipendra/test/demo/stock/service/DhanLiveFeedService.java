@@ -11,6 +11,9 @@ import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -103,7 +106,11 @@ public class DhanLiveFeedService {
         if (stock == null) {
             return;
         }
-        LocalDateTime tradedAt = LocalDateTime.ofInstant(packet.tradedAt(), properties.getMarketZone());
+        // Dhan's LTT field is documented as epoch, but the NSE feed encodes the India
+        // market wall clock as an epoch-shaped value. Interpret that wall clock in the
+        // configured market zone before storing or exposing the actual instant.
+        LocalDateTime tradedAt = LocalDateTime.ofInstant(packet.tradedAt(), ZoneOffset.UTC);
+        Instant normalizedTradeInstant = normalizeDhanTradeTime(packet.tradedAt(), properties.getMarketZone());
         LocalDateTime minute = tradedAt.truncatedTo(ChronoUnit.MINUTES);
         AtomicLong delta = new AtomicLong();
         volumes.compute(packet.securityId(), (key, previous) -> {
@@ -119,7 +126,7 @@ public class DhanLiveFeedService {
         candleStore.applyLiveTick(stock.getId(), minute, packet.lastPrice(), delta.get());
         quoteStore.put(new LatestQuote(packet.securityId(), stock.getSymbol(), packet.lastPrice(),
                 packet.lastQuantity(), packet.dayVolume(), packet.averagePrice(), packet.dayOpen(),
-                packet.dayHigh(), packet.dayLow(), packet.dayClose(), packet.tradedAt()));
+                packet.dayHigh(), packet.dayLow(), packet.dayClose(), normalizedTradeInstant));
     }
 
     private String subscriptionMessage(List<Nifty50Constituent> stocks) throws JacksonException {
@@ -149,6 +156,10 @@ public class DhanLiveFeedService {
     public void credentialsChanged() {
         closeSocket();
         connecting.set(false);
+    }
+
+    static Instant normalizeDhanTradeTime(Instant encodedTime, ZoneId marketZone) {
+        return LocalDateTime.ofInstant(encodedTime, ZoneOffset.UTC).atZone(marketZone).toInstant();
     }
 
     private record VolumeState(LocalDate date, long volume) { }

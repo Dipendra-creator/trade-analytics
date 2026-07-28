@@ -27,9 +27,11 @@ public class StockCandleStore {
                 (constituent_id, interval_start, open_price, high_price, low_price, close_price, volume, source)
             VALUES (?, ?, ?, ?, ?, ?, ?, 'DHAN_LIVE') AS incoming
             ON DUPLICATE KEY UPDATE
-                high_price = GREATEST(high_price, incoming.high_price),
-                low_price = LEAST(low_price, incoming.low_price),
-                close_price = incoming.close_price, volume = volume + incoming.volume, source = 'DHAN_LIVE'
+                high_price = GREATEST(stock_candle.high_price, incoming.high_price),
+                low_price = LEAST(stock_candle.low_price, incoming.low_price),
+                close_price = incoming.close_price,
+                volume = stock_candle.volume + incoming.volume,
+                source = 'DHAN_LIVE'
             """;
 
     private final JdbcTemplate jdbcTemplate;

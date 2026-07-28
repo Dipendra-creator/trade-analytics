@@ -128,8 +128,23 @@ Spring imports the local `.env` file automatically. The file is ignored by Git a
 | `MYSQL_ROOT_PASSWORD` | `root_password` | Local Docker MySQL root password |
 | `REDIS_HOST` | `localhost` | Redis host used by Spring |
 | `REDIS_PORT` | `6379` | Redis port used by Spring |
+| `ANALYTICS_REFRESH_MS` | `1000` | Continuous quant calculation interval in milliseconds |
+| `OPENAI_MODEL` | `gpt-5.6-terra` | Responses API model used for live market context |
+| `OPENAI_ANALYSIS_REFRESH_MS` | `60000` | OpenAI narrative refresh interval in milliseconds |
+| `SETTINGS_ADMIN_USERNAME` | `admin` | HTTP Basic username for the secure settings page |
+| `SETTINGS_ADMIN_PASSWORD` | empty | HTTP Basic password for the secure settings page |
+| `SETTINGS_ENCRYPTION_KEY` | empty | Base64 AES-256 key used to encrypt stored credentials |
 
-The application can start without Dhan credentials, but historical and live ingestion will be skipped. Only `DHAN_CLIENT_ID` and `DHAN_ACCESS_TOKEN` are consumed by the current integration; never place credentials directly in Java files or `application.properties`.
+The application can start without Dhan credentials, but historical and live ingestion will be skipped. The OpenAI API key is managed from `/settings.html`, encrypted in MySQL, and used only by the server. Without an OpenAI key, `/ai-analysis.html` remains live in quant-only mode. Never place credentials directly in Java files or `application.properties`.
+
+## Live analysis pages
+
+- `/` provides the live index-impact overview.
+- `/analysis.html` provides constituent, breadth, sector, and forecast diagnostics.
+- `/ai-analysis.html` ranks live trade candidates with deterministic entry, stop, target, confidence, and optional OpenAI market context.
+- `/settings.html` securely manages the Dhan access token and OpenAI API key.
+
+The quant engine calculates continuously inside the application, independent of browser connections. Both analysis pages receive cached snapshots over WebSocket without controlling whether calculation runs.
 
 ## Database model
 
@@ -316,4 +331,3 @@ Check the Dhan API response and application logs, confirm that backfill is enabl
 - [Market-data ingestion](STOCK_DATA.md)
 - [Nifty 50 methodology](https://www.niftyindices.com/Methodology/Nifty_Broad_Market_Indices_Methodology.pdf)
 - [DhanHQ API documentation](https://dhanhq.co/docs/v2/)
-

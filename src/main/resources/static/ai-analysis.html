@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Live AI-assisted Nifty 50 trade screening with deterministic entry, stop, target, momentum, and risk evidence.">
+  <title>AI Live Analysis | N50 Impact</title>
+  <link rel="stylesheet" href="/ai-analysis.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">N50<span>/</span>IMPACT</a>
+    <nav class="primary-nav" aria-label="Primary navigation">
+      <a href="/">Overview</a>
+      <a href="/analysis.html">Deep analysis</a>
+      <a class="active" href="/ai-analysis.html" aria-current="page">AI live</a>
+      <a href="/settings.html">Settings</a>
+    </nav>
+    <div class="live-meta" aria-live="polite">
+      <span id="marketState">MARKET</span>
+      <span id="connectionState" class="connection">CONNECTING</span>
+      <time id="updatedAt">Waiting for feed</time>
+    </div>
+  </header>
+
+  <main class="ai-shell">
+    <section class="command-header">
+      <div>
+        <p class="eyebrow">LIVE OPPORTUNITY SCREEN</p>
+        <h1>New trades, ranked by evidence.</h1>
+        <p class="intro-copy">Quant-defined levels and live momentum, with AI context when your OpenAI key is active.</p>
+      </div>
+      <div class="engine-state">
+        <span>ANALYSIS MODE</span>
+        <strong id="analysisMode">WARMING UP</strong>
+        <small id="modelName">Server-side analysis</small>
+      </div>
+    </section>
+
+    <section id="feedNotice" class="feed-notice loading" aria-live="polite">
+      <strong>Starting live trade screen</strong>
+      <span>The continuous engine is preparing the first ranked setups.</span>
+    </section>
+
+    <section class="market-reading" aria-labelledby="regimeHeading">
+      <div class="reading-index">
+        <span>CURRENT REGIME</span>
+        <h2 id="regimeHeading">Waiting for market evidence</h2>
+      </div>
+      <p id="marketSummary">Live breadth, contribution, and multi-window momentum will form the analysis.</p>
+      <div class="reading-meta">
+        <span>MARKET DATA</span>
+        <strong id="dataAge">--</strong>
+        <small id="marketStatus">Status pending</small>
+      </div>
+    </section>
+
+    <section class="opportunity-section" aria-labelledby="opportunityHeading">
+      <header class="section-heading">
+        <div><span>RANKED NOW</span><h2 id="opportunityHeading">Best live setups</h2></div>
+        <p><strong id="candidateCount">0</strong> qualifying candidates</p>
+      </header>
+      <div id="candidateGrid" class="candidate-grid" aria-live="polite">
+        <div class="candidate-skeleton"></div>
+        <div class="candidate-skeleton"></div>
+      </div>
+    </section>
+
+    <section class="risk-panel">
+      <div><span>RISK CHECK</span><h2>Before an order</h2></div>
+      <p id="riskNote">Trade levels are model outputs. Verify the current quote, spread, liquidity, and position size before acting.</p>
+      <a href="/analysis.html">Inspect full market evidence</a>
+    </section>
+
+    <section class="method-strip" aria-label="Analysis method">
+      <div><strong>Levels stay deterministic</strong><span>AI cannot alter the calculated entry, stop, or target.</span></div>
+      <div><strong>Screen updates every second</strong><span>Calculations continue even when no browser is connected.</span></div>
+      <div><strong>OpenAI runs server-side</strong><span>Your encrypted API key is never sent to this page.</span></div>
+    </section>
+  </main>
+
+  <script src="/ai-analysis.js" defer></script>
+</body>
+</html>
