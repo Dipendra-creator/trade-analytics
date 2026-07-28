@@ -1,0 +1,9 @@
+CREATE TABLE app_setting (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    setting_name VARCHAR(100) NOT NULL,
+    encrypted_value TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_app_setting_name UNIQUE (setting_name)
+);

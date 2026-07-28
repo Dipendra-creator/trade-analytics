@@ -1,0 +1,9 @@
+CREATE TABLE users (
+    id INT NOT NULL AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    age TINYINT UNSIGNED NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_users_email UNIQUE (email)
+);

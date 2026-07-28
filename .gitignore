@@ -1,6 +1,7 @@
 HELP.md
 target/
 .env
+.cloudflare-tunnel.env
 *.log
 dashboard-test.png
 dashboard-mobile-test.png

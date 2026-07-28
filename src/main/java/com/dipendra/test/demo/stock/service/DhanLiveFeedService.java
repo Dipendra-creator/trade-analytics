@@ -146,6 +146,11 @@ public class DhanLiveFeedService {
         }
     }
 
+    public void credentialsChanged() {
+        closeSocket();
+        connecting.set(false);
+    }
+
     private record VolumeState(LocalDate date, long volume) { }
 
     private final class FeedListener implements WebSocket.Listener {

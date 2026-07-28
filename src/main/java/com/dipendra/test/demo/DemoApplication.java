@@ -7,7 +7,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
-@EntityScan(basePackages = {"com.dipendra.test.models", "com.dipendra.test.demo.stock"})
+@EntityScan(basePackages = {"com.dipendra.test.models", "com.dipendra.test.demo.stock",
+		"com.dipendra.test.demo.settings"})
 public class DemoApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(DemoApplication.class, args);

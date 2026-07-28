@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Secure integration settings for N50 Impact.">
+  <title>Settings | N50 Impact</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/settings.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">N50<span>/</span>IMPACT</a>
+    <nav class="primary-nav" aria-label="Primary navigation">
+      <a href="/">Overview</a>
+      <a href="/analysis.html">Deep analysis</a>
+      <a class="active" href="/settings.html" aria-current="page">Settings</a>
+    </nav>
+    <div class="top-status settings-status"><span>SECURE CONFIG</span></div>
+  </header>
+
+  <main class="settings-shell">
+    <header class="settings-intro">
+      <p>INTEGRATIONS</p>
+      <h1>Application settings</h1>
+      <span>Credentials are encrypted before they are stored. Existing values are never returned to the browser.</span>
+    </header>
+
+    <section id="loadingState" class="settings-notice" aria-live="polite">
+      Loading secure configuration
+    </section>
+
+    <form id="settingsForm" class="settings-form" hidden>
+      <section class="credential-section" aria-labelledby="dhanHeading">
+        <div class="credential-copy">
+          <p>MARKET DATA</p>
+          <h2 id="dhanHeading">Dhan access token</h2>
+          <span>Used for historical candle backfills and the live Nifty constituent feed.</span>
+        </div>
+        <div class="credential-control">
+          <div class="saved-state">
+            <span>Current value</span>
+            <strong id="dhanCurrent">Not configured</strong>
+          </div>
+          <label for="dhanAccessToken">New access token</label>
+          <div class="secret-input">
+            <input id="dhanAccessToken" name="dhanAccessToken" type="password" autocomplete="new-password" spellcheck="false" placeholder="Paste a new Dhan token">
+            <button class="reveal-button" type="button" data-target="dhanAccessToken">Show</button>
+          </div>
+          <small>Leave this blank to keep the current token.</small>
+          <label class="clear-control"><input id="clearDhan" type="checkbox"> Remove the stored Dhan token</label>
+        </div>
+      </section>
+
+      <section class="credential-section" aria-labelledby="openAiHeading">
+        <div class="credential-copy">
+          <p>AI PROVIDER</p>
+          <h2 id="openAiHeading">OpenAI API key</h2>
+          <span>Stored now for future AI analytics features. The current application does not make OpenAI requests yet.</span>
+        </div>
+        <div class="credential-control">
+          <div class="saved-state">
+            <span>Current value</span>
+            <strong id="openAiCurrent">Not configured</strong>
+          </div>
+          <label for="openAiApiKey">New API key</label>
+          <div class="secret-input">
+            <input id="openAiApiKey" name="openAiApiKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="Paste a new OpenAI API key">
+            <button class="reveal-button" type="button" data-target="openAiApiKey">Show</button>
+          </div>
+          <small>Leave this blank to keep the current key.</small>
+          <label class="clear-control"><input id="clearOpenAi" type="checkbox"> Remove the stored OpenAI key</label>
+        </div>
+      </section>
+
+      <footer class="form-actions">
+        <p id="formMessage" role="status" aria-live="polite">No unsaved changes</p>
+        <button id="saveButton" class="save-button" type="submit">Save settings</button>
+      </footer>
+    </form>
+  </main>
+  <script src="/settings.js" defer></script>
+</body>
+</html>
