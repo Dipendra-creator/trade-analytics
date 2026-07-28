@@ -3,6 +3,7 @@ package com.dipendra.test.demo.stock.service;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -20,6 +21,7 @@ import com.dipendra.test.demo.stock.repository.Nifty50Repository;
 public class HistoricalBackfillService {
     private static final Logger log = LoggerFactory.getLogger(HistoricalBackfillService.class);
     private static final long REQUEST_PAUSE_MILLIS = 225L;
+    private static final Duration MAX_DHAN_WINDOW = Duration.ofDays(89);
 
     private final DhanProperties properties;
     private final Nifty50Repository stockRepository;
@@ -67,18 +69,31 @@ public class HistoricalBackfillService {
         int completed = 0;
         for (Nifty50Constituent stock : stocks) {
             try {
-                List<HistoricalCandle> candles = client.fetchIntraday(stock, from, to);
-                candleStore.saveHistoricalBatch(stock.getId(), candles);
+                int candleCount = backfillStock(stock, from, to);
                 completed++;
-                log.info("Backfilled {} candles for {} ({}/{})", candles.size(), stock.getSymbol(), completed, stocks.size());
+                log.info("Backfilled {} candles for {} ({}/{})", candleCount, stock.getSymbol(), completed, stocks.size());
             } catch (RuntimeException exception) {
                 log.error("Dhan backfill failed for {}: {}", stock.getSymbol(), exception.getMessage());
             }
-            if (!pauseForRateLimit()) {
-                return;
-            }
         }
         log.info("Dhan historical backfill finished: {}/{} stocks completed", completed, stocks.size());
+    }
+
+    int backfillStock(Nifty50Constituent stock, LocalDateTime from, LocalDateTime to) {
+        int total = 0;
+        LocalDateTime windowStart = from;
+        while (windowStart.isBefore(to)) {
+            LocalDateTime windowEnd = windowStart.plus(MAX_DHAN_WINDOW);
+            if (windowEnd.isAfter(to)) windowEnd = to;
+            List<HistoricalCandle> candles = client.fetchIntraday(stock, windowStart, windowEnd);
+            candleStore.saveHistoricalBatch(stock.getId(), candles);
+            total += candles.size();
+            windowStart = windowEnd;
+            if (windowStart.isBefore(to) && !pauseForRateLimit()) {
+                throw new IllegalStateException("Historical backfill was interrupted");
+            }
+        }
+        return total;
     }
 
     private boolean pauseForRateLimit() {

@@ -19,7 +19,11 @@ public class SettingsSecurityConfiguration {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/settings.html", "/settings.js", "/settings.css", "/api/settings/**")
+                        .requestMatchers("/actuator/health/liveness", "/actuator/health/readiness",
+                                "/actuator/prometheus")
+                        .permitAll()
+                        .requestMatchers("/settings.html", "/settings.js", "/settings.css", "/api/settings/**",
+                                "/actuator/**")
                         .authenticated()
                         .anyRequest().permitAll())
                 .httpBasic(Customizer.withDefaults())

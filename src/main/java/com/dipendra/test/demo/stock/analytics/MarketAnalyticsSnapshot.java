@@ -5,6 +5,7 @@ import java.util.List;
 
 public record MarketAnalyticsSnapshot(
         Instant timestamp,
+        Instant dataTimestamp,
         String marketStatus,
         int coverage,
         IndexMetrics index,

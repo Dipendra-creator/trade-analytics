@@ -25,7 +25,8 @@ class AiTradeAnalysisServiceTests {
                 mock(AppSettingsService.class), JsonMapper.builder().build(), "https://api.openai.com", "test-model");
         StockImpact stock = new StockImpact(1, "RELIANCE", "Reliance Industries", "Energy", 10, 3000, 2950,
                 1.69, 12, 22, .25, .40, .65, .08, "LIFTING");
-        MarketAnalyticsSnapshot market = new MarketAnalyticsSnapshot(Instant.now(), "OPEN", 1,
+        Instant now = Instant.now();
+        MarketAnalyticsSnapshot market = new MarketAnalyticsSnapshot(now, now, "OPEN", 1,
                 new IndexMetrics(25000, 24900, 100, .4, 25000, 0, 12),
                 new ForecastMetrics("15_MINUTES", "UP", 10, 24980, 25040, 70, 4, .2),
                 new BreadthMetrics(32, 18, 0, .28, 40, 50), List.of(), List.of(stock));

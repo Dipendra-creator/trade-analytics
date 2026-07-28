@@ -48,9 +48,12 @@ public class DhanLiveFeedService {
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
     private final AtomicBoolean connecting = new AtomicBoolean();
+    private final AtomicLong packetsReceived = new AtomicLong();
+    private final AtomicLong reconnects = new AtomicLong();
     private final Map<String, Nifty50Constituent> stocksBySecurityId = new ConcurrentHashMap<>();
     private final Map<String, VolumeState> volumes = new ConcurrentHashMap<>();
     private volatile WebSocket socket;
+    private volatile Instant lastPacketAt;
 
     public DhanLiveFeedService(DhanProperties properties, Nifty50Repository stockRepository,
             StockCandleStore candleStore, LatestQuoteStore quoteStore, ObjectMapper objectMapper) {
@@ -84,6 +87,7 @@ public class DhanLiveFeedService {
     }
 
     private void connect() {
+        reconnects.incrementAndGet();
         List<Nifty50Constituent> stocks = stockRepository.findByActiveTrueOrderByRankAsc();
         stocksBySecurityId.clear();
         stocks.forEach(stock -> stocksBySecurityId.put(stock.getSecurityId(), stock));
@@ -106,6 +110,8 @@ public class DhanLiveFeedService {
         if (stock == null) {
             return;
         }
+        packetsReceived.incrementAndGet();
+        lastPacketAt = Instant.now();
         // Dhan's LTT field is documented as epoch, but the NSE feed encodes the India
         // market wall clock as an epoch-shaped value. Interpret that wall clock in the
         // configured market zone before storing or exposing the actual instant.
@@ -157,6 +163,13 @@ public class DhanLiveFeedService {
         closeSocket();
         connecting.set(false);
     }
+
+    public FeedStatus status() {
+        return new FeedStatus(socket != null, connecting.get(), lastPacketAt, packetsReceived.get(), reconnects.get());
+    }
+
+    public record FeedStatus(boolean connected, boolean connecting, Instant lastPacketAt,
+            long packetsReceived, long connectionAttempts) { }
 
     static Instant normalizeDhanTradeTime(Instant encodedTime, ZoneId marketZone) {
         return LocalDateTime.ofInstant(encodedTime, ZoneOffset.UTC).atZone(marketZone).toInstant();

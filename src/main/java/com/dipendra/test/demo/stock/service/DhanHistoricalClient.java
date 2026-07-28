@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import com.dipendra.test.demo.stock.config.DhanProperties;
+import com.dipendra.test.demo.stock.config.ExternalRestClientFactory;
 import com.dipendra.test.demo.stock.domain.Nifty50Constituent;
 
 @Component
@@ -24,9 +25,9 @@ public class DhanHistoricalClient {
     private final DhanProperties properties;
     private final RestClient restClient;
 
-    public DhanHistoricalClient(DhanProperties properties) {
+    public DhanHistoricalClient(DhanProperties properties, ExternalRestClientFactory restClients) {
         this.properties = properties;
-        this.restClient = RestClient.builder().baseUrl(properties.getApiBaseUrl()).build();
+        this.restClient = restClients.create(properties.getApiBaseUrl());
     }
 
     public List<HistoricalCandle> fetchIntraday(

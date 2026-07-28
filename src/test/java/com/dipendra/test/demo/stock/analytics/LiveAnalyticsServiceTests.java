@@ -13,7 +13,8 @@ class LiveAnalyticsServiceTests {
     @Test
     void refreshCachesSnapshotWithoutAnyWebSocketSessions() {
         NiftyQuantEngine engine = mock(NiftyQuantEngine.class);
-        MarketAnalyticsSnapshot expected = new MarketAnalyticsSnapshot(Instant.now(), "OPEN", 0,
+        Instant now = Instant.now();
+        MarketAnalyticsSnapshot expected = new MarketAnalyticsSnapshot(now, now, "OPEN", 0,
                 new MarketAnalyticsSnapshot.IndexMetrics(0, 0, 0, 0, 0, 0, 0),
                 new MarketAnalyticsSnapshot.ForecastMetrics("15_MINUTES", "SIDEWAYS", 0, 0, 0, 0, 0, 0),
                 new MarketAnalyticsSnapshot.BreadthMetrics(0, 0, 0, 0, 0, 0), List.of(), List.of());
