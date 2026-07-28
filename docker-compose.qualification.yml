@@ -1,0 +1,69 @@
+services:
+  qualification-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trade-analytics-qualification-app
+    restart: "no"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://qualification-mysql:3306/qualification?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&rewriteBatchedStatements=true
+      MYSQL_USER: qualification_user
+      MYSQL_PASSWORD: ${QUALIFICATION_MYSQL_PASSWORD}
+      SETTINGS_ADMIN_USERNAME: ${SETTINGS_ADMIN_USERNAME}
+      SETTINGS_ADMIN_PASSWORD: ${SETTINGS_ADMIN_PASSWORD}
+      SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY}
+      DHAN_CLIENT_ID: ${DHAN_CLIENT_ID}
+      DHAN_ACCESS_TOKEN: ${DHAN_ACCESS_TOKEN}
+      DHAN_BACKFILL_ENABLED: ${DHAN_BACKFILL_ENABLED:-true}
+      DHAN_BACKFILL_FROM: ${DHAN_BACKFILL_FROM}
+      DHAN_BACKFILL_TO: ${DHAN_BACKFILL_TO}
+      REDIS_HOST: qualification-redis
+      REDIS_PORT: 6379
+      DHAN_LIVE_FEED_ENABLED: "false"
+      PAPER_TRADING_ENABLED: "true"
+      ALLOWED_ORIGIN: http://127.0.0.1:18080
+    ports:
+      - "127.0.0.1:18080:8080"
+    depends_on:
+      qualification-mysql:
+        condition: service_healthy
+      qualification-redis:
+        condition: service_healthy
+
+  qualification-mysql:
+    image: mysql:8.4
+    container_name: trade-analytics-qualification-mysql
+    restart: "no"
+    environment:
+      MYSQL_DATABASE: qualification
+      MYSQL_USER: qualification_user
+      MYSQL_PASSWORD: ${QUALIFICATION_MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${QUALIFICATION_MYSQL_ROOT_PASSWORD}
+    ports:
+      - "127.0.0.1:13306:3306"
+    volumes:
+      - qualification_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  qualification-redis:
+    image: redis:7.4-alpine
+    container_name: trade-analytics-qualification-redis
+    restart: "no"
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:16379:6379"
+    volumes:
+      - qualification_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  qualification_mysql_data:
+  qualification_redis_data:

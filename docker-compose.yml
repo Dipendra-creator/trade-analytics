@@ -23,6 +23,8 @@ services:
       REDIS_PORT: 6379
     ports:
       - "8080:8080"
+    expose:
+      - "9091"
     depends_on:
       mysql:
         condition: service_healthy
@@ -63,6 +65,104 @@ services:
       timeout: 5s
       retries: 10
 
+  prometheus:
+    profiles: ["monitoring"]
+    image: prom/prometheus:v3.5.0
+    container_name: trade-analytics-prometheus
+    restart: unless-stopped
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=30d"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      app:
+        condition: service_healthy
+
+  alertmanager:
+    profiles: ["monitoring"]
+    image: prom/alertmanager:v0.28.1
+    container_name: trade-analytics-alertmanager
+    restart: unless-stopped
+    env_file:
+      - path: .monitoring.env
+        required: false
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        sed -e "s|TELEGRAM_BOT_TOKEN_VALUE|$${TELEGRAM_BOT_TOKEN}|g" -e "s|TELEGRAM_CHAT_ID_VALUE|$${TELEGRAM_CHAT_ID}|g" /etc/alertmanager/template.yml > /tmp/alertmanager.yml
+        exec /bin/alertmanager --config.file=/tmp/alertmanager.yml --storage.path=/alertmanager
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/template.yml:ro
+      - alertmanager_data:/alertmanager
+
+  grafana:
+    profiles: ["monitoring"]
+    image: grafana/grafana:12.1.0
+    container_name: trade-analytics-grafana
+    restart: unless-stopped
+    env_file:
+      - path: .monitoring.env
+        required: false
+    environment:
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+
+  node-exporter:
+    profiles: ["monitoring"]
+    image: prom/node-exporter:v1.9.1
+    container_name: trade-analytics-node-exporter
+    restart: unless-stopped
+    command: ["--path.rootfs=/host"]
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+
+  cadvisor:
+    profiles: ["monitoring"]
+    image: gcr.io/cadvisor/cadvisor:v0.52.1
+    container_name: trade-analytics-cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+
+  mysql-exporter:
+    profiles: ["monitoring"]
+    image: prom/mysqld-exporter:v0.17.2
+    container_name: trade-analytics-mysql-exporter
+    restart: unless-stopped
+    command: ["--config.my-cnf=/cfg/.my.cnf"]
+    volumes:
+      - ./.mysql-exporter.cnf:/cfg/.my.cnf:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  redis-exporter:
+    profiles: ["monitoring"]
+    image: oliver006/redis_exporter:v1.77.0
+    container_name: trade-analytics-redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
 volumes:
   mysql_data:
   redis_data:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:

@@ -1,0 +1,15 @@
+route:
+  receiver: telegram
+  group_by: [alertname]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 2h
+
+receivers:
+  - name: telegram
+    telegram_configs:
+      - bot_token: TELEGRAM_BOT_TOKEN_VALUE
+        chat_id: TELEGRAM_CHAT_ID_VALUE
+        send_resolved: true
+        parse_mode: HTML
+        message: '{{ template "telegram.default.message" . }}'
