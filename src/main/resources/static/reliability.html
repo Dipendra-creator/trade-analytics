@@ -7,6 +7,7 @@
   <title>Reliability | N50 Impact</title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/reliability.css">
+  <link rel="stylesheet" href="/trade-controls.css">
   <script src="/reliability.js" defer></script>
 </head>
 <body>
@@ -45,10 +46,15 @@
     </section>
 
     <section class="trade-panel">
-      <div class="section-title"><div><span>AUDIT TRAIL</span><h2>Latest paper trades</h2></div><b id="tradeCount">0 RECORDED</b></div>
+      <div class="section-title"><div><span>AUDIT TRAIL</span><h2>Live paper trades</h2></div><b id="tradeCount">0 RECORDED</b></div>
+      <div class="trade-controls" aria-label="Paper trade controls">
+        <div><strong id="entryMode">AUTOMATIC ENTRIES ACTIVE</strong><span id="actionStatus">Prices and P&amp;L refresh every 2 seconds.</span></div>
+        <button id="scanTrades" type="button">Find new live trades</button>
+        <button id="closeAllTrades" class="danger" type="button">Close all &amp; pause</button>
+      </div>
       <div class="trade-table-wrap">
         <table>
-          <thead><tr><th>Symbol</th><th>Side</th><th>State</th><th>Entry</th><th>Stop</th><th>Target</th><th>Exit</th><th>Net P&amp;L</th><th>Reason</th></tr></thead>
+          <thead><tr><th>Symbol</th><th>Side</th><th>State</th><th>Entry</th><th>Live / Exit</th><th>Stop</th><th>Target</th><th>Live / Net P&amp;L</th><th>Held / Reason</th></tr></thead>
           <tbody id="tradeRows"><tr><td colspan="9" class="empty">No paper trades have been recorded.</td></tr></tbody>
         </table>
       </div>

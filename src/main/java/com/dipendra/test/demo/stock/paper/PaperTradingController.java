@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
 
 import com.dipendra.test.demo.stock.analytics.LiveAnalyticsService;
 import com.dipendra.test.demo.stock.analytics.MarketAnalyticsSnapshot.StockImpact;
@@ -40,6 +41,22 @@ public class PaperTradingController {
     public ResponseEntity<List<PaperTradeView>> recent(@RequestParam(defaultValue = "3") int limit) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(views(Math.max(1, Math.min(20, limit))));
     }
+
+    @PostMapping("/actions/close-all")
+    public ResponseEntity<ActionResult> closeAll() {
+        int closed = service.closeAllAndPause();
+        return ResponseEntity.ok(new ActionResult("ENTRIES_PAUSED", closed,
+                "All priceable open trades were closed and automatic entries are paused."));
+    }
+
+    @PostMapping("/actions/scan")
+    public ResponseEntity<ActionResult> scan() {
+        int opened = service.requestNewTrades();
+        return ResponseEntity.ok(new ActionResult("SCANNING_LIVE", opened,
+                "Automatic entries resumed and the latest live candidates were evaluated."));
+    }
+
+    public record ActionResult(String status, int affectedTrades, String message) { }
 
     private List<PaperTradeView> views(int limit) {
         Map<String, Double> prices = analytics.latest().stream().flatMap(value -> value.stocks().stream())

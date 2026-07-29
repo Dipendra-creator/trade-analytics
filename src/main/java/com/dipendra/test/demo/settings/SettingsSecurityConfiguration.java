@@ -23,12 +23,12 @@ public class SettingsSecurityConfiguration {
                                 "/actuator/prometheus")
                         .permitAll()
                         .requestMatchers("/settings.html", "/settings.js", "/settings.css", "/api/settings/**",
-                                "/actuator/**")
+                                "/api/paper/actions/**", "/actuator/**")
                         .authenticated()
                         .anyRequest().permitAll())
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/settings/**"))
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/settings/**", "/api/paper/actions/**"))
                 .build();
     }
 

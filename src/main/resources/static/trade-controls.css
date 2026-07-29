@@ -1,0 +1,16 @@
+.trade-controls {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+.trade-controls strong, .trade-controls span { display: block; }
+.trade-controls strong { color: var(--accent); font: 10px ui-monospace, Consolas, monospace; letter-spacing: .08em; }
+.trade-controls span { margin-top: 5px; color: var(--muted); font-size: 11px; }
+.trade-controls button { padding: 10px 13px; border: 1px solid var(--accent-dark); border-radius: 6px; background: transparent; color: var(--accent); font-weight: 700; cursor: pointer; }
+.trade-controls button.danger { border-color: var(--red-dark); color: var(--red); }
+.trade-controls button:disabled { opacity: .45; cursor: wait; }
+@media (max-width: 700px) { .trade-controls { grid-template-columns: 1fr; } .trade-controls button { width: 100%; } }

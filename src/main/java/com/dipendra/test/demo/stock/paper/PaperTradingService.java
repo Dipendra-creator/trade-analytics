@@ -45,6 +45,7 @@ public class PaperTradingService {
     private final TelegramTradeNotifier telegram;
     private final Counter openedCounter;
     private final Counter closedCounter;
+    private volatile boolean entriesPaused;
 
     public PaperTradingService(PaperTradeRepository repository, PaperTradingProperties properties,
             AiTradeAnalysisService candidates, LiveAnalyticsService analytics, DhanProperties dhan,
@@ -76,7 +77,7 @@ public class PaperTradingService {
                     .collect(Collectors.toMap(StockImpact::symbol, StockImpact::price, (a, b) -> a));
             closeEligible(prices);
             AiAnalysisSnapshot snapshot = candidates.latest().orElse(null);
-            if (snapshot != null) openEligible(snapshot);
+            if (snapshot != null && !entriesPaused) openEligible(snapshot);
         } catch (RuntimeException exception) {
             log.warn("Paper trading evaluation failed: {}", exception.getMessage());
         }
@@ -91,16 +92,42 @@ public class PaperTradingService {
             BigDecimal price = money(rawPrice);
             String reason = exitReason(trade, price, now, marketNow.toLocalTime());
             if (reason == null) continue;
-            BigDecimal exit = applySlippage(price, trade.getSide(), false);
-            BigDecimal notional = trade.getEntryPrice().add(exit)
-                    .multiply(BigDecimal.valueOf(trade.getQuantity()));
-            BigDecimal costs = notional.multiply(properties.getTransactionCostBpsPerSide())
-                    .divide(TEN_THOUSAND, 4, RoundingMode.HALF_UP);
-            trade.close(now, exit, costs, reason);
-            repository.save(trade);
-            closedCounter.increment();
-            telegram.closed(trade);
+            closeTrade(trade, price, now, reason);
         }
+    }
+
+    private void closeTrade(PaperTrade trade, BigDecimal price, Instant now, String reason) {
+        BigDecimal exit = applySlippage(price, trade.getSide(), false);
+        BigDecimal notional = trade.getEntryPrice().add(exit).multiply(BigDecimal.valueOf(trade.getQuantity()));
+        BigDecimal costs = notional.multiply(properties.getTransactionCostBpsPerSide())
+                .divide(TEN_THOUSAND, 4, RoundingMode.HALF_UP);
+        trade.close(now, exit, costs, reason);
+        repository.save(trade);
+        closedCounter.increment();
+        telegram.closed(trade);
+    }
+
+    @Transactional
+    public int closeAllAndPause() {
+        entriesPaused = true;
+        Map<String, Double> prices = analytics.latest().stream().flatMap(value -> value.stocks().stream())
+                .collect(Collectors.toMap(StockImpact::symbol, StockImpact::price, (a, b) -> a));
+        int closed = 0;
+        Instant now = Instant.now();
+        for (PaperTrade trade : repository.findByStateOrderByOpenedAtAsc("OPEN")) {
+            Double price = prices.get(trade.getSymbol());
+            if (price == null || price <= 0) continue;
+            closeTrade(trade, money(price), now, "MANUAL");
+            closed++;
+        }
+        return closed;
+    }
+
+    @Transactional
+    public int requestNewTrades() {
+        entriesPaused = false;
+        evaluate();
+        return (int) repository.countByState("OPEN");
     }
 
     private String exitReason(PaperTrade trade, BigDecimal price, Instant now, LocalTime marketTime) {
@@ -183,7 +210,7 @@ public class PaperTradingService {
         BigDecimal profitFactor = grossLoss.signum() == 0 ? BigDecimal.ZERO
                 : grossProfit.divide(grossLoss, 4, RoundingMode.HALF_UP);
         return new PaperPortfolio(properties.getStartingCapital(), currentEquity(),
-                repository.countByState("OPEN"), wins, losses, profitFactor, dailyLossLimitReached());
+                repository.countByState("OPEN"), wins, losses, profitFactor, dailyLossLimitReached(), entriesPaused);
     }
 
     public List<PaperTrade> recentTrades() { return repository.findTop100ByOrderByOpenedAtDesc(); }
@@ -196,5 +223,5 @@ public class PaperTradingService {
     }
 
     public record PaperPortfolio(BigDecimal startingCapital, BigDecimal currentEquity, long openPositions,
-            long wins, long losses, BigDecimal profitFactor, boolean riskHalted) { }
+            long wins, long losses, BigDecimal profitFactor, boolean riskHalted, boolean entriesPaused) { }
 }
