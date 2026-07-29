@@ -58,7 +58,7 @@ public class AiTradeAnalysisService {
     public AiTradeAnalysisService(LiveAnalyticsService analytics, AppSettingsService settings,
             ObjectMapper objectMapper,
             @Value("${openai.api-base-url:https://api.openai.com}") String apiBaseUrl,
-            @Value("${openai.model:gpt-5.6-terra}") String model) {
+            @Value("${openai.model:gpt-4o-mini}") String model) {
         this(analytics, settings, objectMapper, apiBaseUrl, model, Duration.ofSeconds(10),
                 Duration.ofSeconds(20), Metrics.globalRegistry);
     }
@@ -67,7 +67,7 @@ public class AiTradeAnalysisService {
     public AiTradeAnalysisService(LiveAnalyticsService analytics, AppSettingsService settings,
             ObjectMapper objectMapper,
             @Value("${openai.api-base-url:https://api.openai.com}") String apiBaseUrl,
-            @Value("${openai.model:gpt-5.6-terra}") String model,
+            @Value("${openai.model:gpt-4o-mini}") String model,
             @Value("${external.connect-timeout:10s}") Duration connectTimeout,
             @Value("${external.read-timeout:20s}") Duration readTimeout,
             MeterRegistry registry) {
@@ -104,7 +104,6 @@ public class AiTradeAnalysisService {
             String prompt = buildPrompt(market, candidates);
             Map<String, Object> request = new LinkedHashMap<>();
             request.put("model", model);
-            request.put("reasoning", Map.of("effort", "low"));
             request.put("max_output_tokens", 700);
             request.put("text", Map.of("format", Map.of(
                     "type", "json_schema", "name", "market_narrative", "strict", true,

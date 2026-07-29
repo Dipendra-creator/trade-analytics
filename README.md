@@ -129,7 +129,7 @@ Spring imports the local `.env` file automatically. The file is ignored by Git a
 | `REDIS_HOST` | `localhost` | Redis host used by Spring |
 | `REDIS_PORT` | `6379` | Redis port used by Spring |
 | `ANALYTICS_REFRESH_MS` | `1000` | Continuous quant calculation interval in milliseconds |
-| `OPENAI_MODEL` | `gpt-5.6-terra` | Responses API model used for live market context |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Responses API model used for live market context |
 | `OPENAI_ANALYSIS_REFRESH_MS` | `60000` | OpenAI narrative refresh interval in milliseconds |
 | `SETTINGS_ADMIN_USERNAME` | `admin` | HTTP Basic username for the secure settings page |
 | `SETTINGS_ADMIN_PASSWORD` | empty | HTTP Basic password for the secure settings page |
