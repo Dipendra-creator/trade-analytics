@@ -1,0 +1,51 @@
+groups:
+  - name: trade-analytics
+    rules:
+      - alert: TradeAnalyticsDown
+        expr: up{job="trade-analytics"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "Trade analytics application is unavailable"
+      - alert: AnalyticsStale
+        expr: analytics_snapshot_age_seconds > 3
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Analytics snapshots are more than three seconds old"
+      - alert: DhanFeedStale
+        expr: dhan_feed_age_seconds > 3 and on() market_open == 1
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Dhan market feed is stale during the market window"
+      - alert: ApiLatencyBudgetBurn
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket[5m]))) > 0.5
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "REST p95 latency exceeds 500 ms"
+      - alert: AnalyticsCalculationFailures
+        expr: increase(analytics_calculation_failures_total[5m]) > 0
+        for: 1m
+        labels: { severity: warning }
+        annotations:
+          summary: "Continuous analytics calculations are failing"
+      - alert: HostCpuPressure
+        expr: 100 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100 > 80
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Host CPU has exceeded the qualification threshold"
+      - alert: HostDiskPressure
+        expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.15
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "Host disk has less than 15% free space"
+      - alert: PaperRiskHalted
+        expr: paper_risk_halted > 0
+        for: 1m
+        labels: { severity: warning }
+        annotations:
+          summary: "Paper portfolio reached its daily risk limit"

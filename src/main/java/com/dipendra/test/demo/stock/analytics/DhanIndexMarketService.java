@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import com.dipendra.test.demo.stock.config.DhanProperties;
+import com.dipendra.test.demo.stock.config.ExternalRestClientFactory;
 
 @Service
 public class DhanIndexMarketService {
@@ -24,9 +25,9 @@ public class DhanIndexMarketService {
     private final AtomicReference<IndexMarketState> state = new AtomicReference<>(IndexMarketState.empty());
     private volatile LocalDate historicalRefreshDate;
 
-    public DhanIndexMarketService(DhanProperties properties) {
+    public DhanIndexMarketService(DhanProperties properties, ExternalRestClientFactory restClients) {
         this.properties = properties;
-        this.client = RestClient.builder().baseUrl(properties.getApiBaseUrl()).build();
+        this.client = restClients.create(properties.getApiBaseUrl());
     }
 
     public IndexMarketState current() {

@@ -1,0 +1,5 @@
+[client]
+user=demo_user
+password=replace-with-the-rotated-database-password
+host=mysql
+port=3306

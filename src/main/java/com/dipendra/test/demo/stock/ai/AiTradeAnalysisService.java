@@ -6,6 +6,7 @@ import static java.lang.Math.min;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -17,9 +18,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -31,6 +34,10 @@ import com.dipendra.test.demo.stock.analytics.MarketAnalyticsSnapshot;
 import com.dipendra.test.demo.stock.analytics.MarketAnalyticsSnapshot.StockImpact;
 
 import tools.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.Timer;
 
 @Service
 public class AiTradeAnalysisService {
@@ -42,6 +49,9 @@ public class AiTradeAnalysisService {
     private final RestClient openAi;
     private final ObjectMapper objectMapper;
     private final String model;
+    private final Timer requestTimer;
+    private final Counter successCounter;
+    private final Counter failureCounter;
     private final AtomicReference<Narrative> narrative = new AtomicReference<>();
     private final Map<String, Instant> firstSeen = new ConcurrentHashMap<>();
 
@@ -49,11 +59,29 @@ public class AiTradeAnalysisService {
             ObjectMapper objectMapper,
             @Value("${openai.api-base-url:https://api.openai.com}") String apiBaseUrl,
             @Value("${openai.model:gpt-5.6-terra}") String model) {
+        this(analytics, settings, objectMapper, apiBaseUrl, model, Duration.ofSeconds(10),
+                Duration.ofSeconds(20), Metrics.globalRegistry);
+    }
+
+    @Autowired
+    public AiTradeAnalysisService(LiveAnalyticsService analytics, AppSettingsService settings,
+            ObjectMapper objectMapper,
+            @Value("${openai.api-base-url:https://api.openai.com}") String apiBaseUrl,
+            @Value("${openai.model:gpt-5.6-terra}") String model,
+            @Value("${external.connect-timeout:10s}") Duration connectTimeout,
+            @Value("${external.read-timeout:20s}") Duration readTimeout,
+            MeterRegistry registry) {
         this.analytics = analytics;
         this.settings = settings;
         this.objectMapper = objectMapper;
         this.model = model;
-        this.openAi = RestClient.builder().baseUrl(apiBaseUrl).build();
+        HttpClient httpClient = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(readTimeout);
+        this.openAi = RestClient.builder().baseUrl(apiBaseUrl).requestFactory(requestFactory).build();
+        this.requestTimer = registry.timer("openai_analysis_request_duration");
+        this.successCounter = registry.counter("openai_analysis_requests_total", "outcome", "success");
+        this.failureCounter = registry.counter("openai_analysis_requests_total", "outcome", "failure");
     }
 
     public Optional<AiAnalysisSnapshot> latest() {
@@ -69,6 +97,7 @@ public class AiTradeAnalysisService {
             narrative.set(null);
             return;
         }
+        Timer.Sample requestSample = Timer.start();
         try {
             MarketAnalyticsSnapshot market = current.get();
             List<TradeCandidate> candidates = rankCandidates(market);
@@ -77,6 +106,14 @@ public class AiTradeAnalysisService {
             request.put("model", model);
             request.put("reasoning", Map.of("effort", "low"));
             request.put("max_output_tokens", 700);
+            request.put("text", Map.of("format", Map.of(
+                    "type", "json_schema", "name", "market_narrative", "strict", true,
+                    "schema", Map.of("type", "object", "additionalProperties", false,
+                            "required", List.of("regime", "summary", "riskNote"),
+                            "properties", Map.of(
+                                    "regime", Map.of("type", "string", "maxLength", 80),
+                                    "summary", Map.of("type", "string", "maxLength", 400),
+                                    "riskNote", Map.of("type", "string", "maxLength", 240))))));
             request.put("input", prompt);
             Map<String, Object> response = openAi.post().uri("/v1/responses")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey.get())
@@ -85,13 +122,17 @@ public class AiTradeAnalysisService {
                     .body(new ParameterizedTypeReference<>() { });
             Narrative generated = parseNarrative(extractOutputText(response));
             narrative.set(new Narrative("OPENAI", model, generated.regime(), generated.summary(),
-                    generated.riskNote(), market.timestamp()));
+                    generated.riskNote(), market.dataTimestamp()));
+            successCounter.increment();
         } catch (RuntimeException exception) {
+            failureCounter.increment();
             log.warn("OpenAI market narrative refresh failed: {}", exception.getMessage());
             Narrative old = narrative.get();
             if (old == null) narrative.set(new Narrative("AI_ERROR", model, "Live market",
                     "Quant signals remain live while AI commentary is temporarily unavailable.",
                     "Validate liquidity, spread, and position size before acting.", current.get().timestamp()));
+        } finally {
+            requestSample.stop(requestTimer);
         }
     }
 
@@ -99,13 +140,13 @@ public class AiTradeAnalysisService {
         List<TradeCandidate> candidates = rankCandidates(market);
         Narrative ai = narrative.get();
         boolean configured = settings.getOpenAiApiKey().isPresent();
-        boolean currentAi = ai != null && !ai.marketDataTimestamp().isBefore(market.timestamp().minusSeconds(180));
+        boolean currentAi = ai != null && !ai.marketDataTimestamp().isBefore(market.dataTimestamp().minusSeconds(180));
         String mode = currentAi ? ai.mode() : configured ? "AI_PENDING" : "QUANT_ONLY";
         String regime = currentAi ? ai.regime() : deterministicRegime(market);
         String summary = currentAi ? ai.summary() : deterministicSummary(market, candidates);
         String risk = currentAi ? ai.riskNote()
                 : "Signals are model outputs, not investment advice. Confirm price, liquidity, and risk before placing an order.";
-        return new AiAnalysisSnapshot(Instant.now(), market.timestamp(), market.marketStatus(), mode,
+        return new AiAnalysisSnapshot(Instant.now(), market.dataTimestamp(), market.marketStatus(), mode,
                 currentAi ? ai.model() : model, regime, summary, risk, candidates);
     }
 
@@ -146,6 +187,8 @@ public class AiTradeAnalysisService {
                     round(item.score()), stock.return5m(), stock.return15m(), stock.return60m(),
                     stock.contributionPoints(), thesis, seen));
         }
+        firstSeen.keySet().retainAll(result.stream()
+                .map(candidate -> candidate.symbol() + ":" + candidate.side()).toList());
         return List.copyOf(result);
     }
 

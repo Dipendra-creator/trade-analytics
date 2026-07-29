@@ -2,6 +2,12 @@ HELP.md
 target/
 .env
 .cloudflare-tunnel.env
+.monitoring.env
+.mysql-exporter.cnf
+.qualification.env
+backups/
+__pycache__/
+*.pyc
 *.log
 dashboard-test.png
 dashboard-mobile-test.png

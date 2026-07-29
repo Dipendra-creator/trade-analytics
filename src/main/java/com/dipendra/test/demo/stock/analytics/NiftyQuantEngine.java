@@ -7,6 +7,7 @@ import static java.lang.Math.min;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -23,11 +24,13 @@ import com.dipendra.test.demo.stock.analytics.MarketAnalyticsSnapshot.IndexMetri
 import com.dipendra.test.demo.stock.analytics.MarketAnalyticsSnapshot.SectorImpact;
 import com.dipendra.test.demo.stock.analytics.MarketAnalyticsSnapshot.StockImpact;
 import com.dipendra.test.demo.stock.config.DhanProperties;
+import com.dipendra.test.demo.stock.service.DhanLiveFeedService;
 
 @Service
 public class NiftyQuantEngine {
     private static final String COMPONENT_QUERY = """
             SELECT nc.rank_number, nc.symbol, nc.stock_name, nc.sector, nc.weight_percent,
+                   current_bar.interval_start AS data_time,
                    current_bar.close_price AS price,
                    COALESCE((SELECT p.close_price FROM stock_candle p
                      WHERE p.constituent_id=nc.id AND p.interval_start < DATE(current_bar.interval_start)
@@ -51,11 +54,14 @@ public class NiftyQuantEngine {
     private final JdbcTemplate jdbc;
     private final DhanIndexMarketService indexMarket;
     private final DhanProperties properties;
+    private final DhanLiveFeedService liveFeed;
 
-    public NiftyQuantEngine(JdbcTemplate jdbc, DhanIndexMarketService indexMarket, DhanProperties properties) {
+    public NiftyQuantEngine(JdbcTemplate jdbc, DhanIndexMarketService indexMarket, DhanProperties properties,
+            DhanLiveFeedService liveFeed) {
         this.jdbc = jdbc;
         this.indexMarket = indexMarket;
         this.properties = properties;
+        this.liveFeed = liveFeed;
     }
 
     public MarketAnalyticsSnapshot calculate() {
@@ -63,7 +69,8 @@ public class NiftyQuantEngine {
                 rs.getInt("rank_number"), rs.getString("symbol"), rs.getString("stock_name"),
                 rs.getString("sector"), rs.getDouble("weight_percent"), rs.getDouble("price"),
                 rs.getDouble("previous_close"), rs.getDouble("price_5m"),
-                rs.getDouble("price_15m"), rs.getDouble("price_60m")));
+                rs.getDouble("price_15m"), rs.getDouble("price_60m"),
+                rs.getTimestamp("data_time").toLocalDateTime()));
         double weightTotal = components.stream().mapToDouble(Component::weight).sum();
         IndexMarketState market = indexMarket.current();
         double previousIndex = market.previousClose().doubleValue();
@@ -128,7 +135,11 @@ public class NiftyQuantEngine {
                 .limit(5).mapToDouble(StockImpact::impactShare).sum();
         stocks.sort(Comparator.comparingDouble(StockImpact::contributionPoints).reversed());
 
-        return new MarketAnalyticsSnapshot(Instant.now(), marketStatus(), components.size(),
+        Instant candleTimestamp = components.stream().map(Component::dataTime).max(LocalDateTime::compareTo)
+                .map(value -> value.atZone(properties.getMarketZone()).toInstant()).orElse(Instant.EPOCH);
+        Instant marketDataTimestamp = liveFeed.status().lastPacketAt() == null
+                ? candleTimestamp : liveFeed.status().lastPacketAt();
+        return new MarketAnalyticsSnapshot(Instant.now(), marketDataTimestamp, marketStatus(), components.size(),
                 new IndexMetrics(officialLevel, previousIndex, actualChange,
                         previousIndex == 0 ? 0 : actualChange / previousIndex * 100,
                         syntheticLevel, officialLevel - syntheticLevel, previousIndex * weightedReturn),
@@ -152,7 +163,8 @@ public class NiftyQuantEngine {
     private static String direction(double points) { return points > 1 ? "UP" : points < -1 ? "DOWN" : "SIDEWAYS"; }
 
     private record Component(int rank, String symbol, String name, String sector, double weight,
-            double price, double previousClose, double price5m, double price15m, double price60m) { }
+            double price, double previousClose, double price5m, double price15m, double price60m,
+            LocalDateTime dataTime) { }
     private record RawImpact(Component component, double weight, double dayReturn, double r5, double r15, double r60) { }
 
     private static final class SectorAccumulator {

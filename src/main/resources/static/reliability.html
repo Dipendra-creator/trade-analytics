@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Live operational and paper-trading reliability evidence for N50 Impact.">
+  <title>Reliability | N50 Impact</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/reliability.css">
+  <script src="/reliability.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">N50<span>/</span>IMPACT</a>
+    <nav class="primary-nav" aria-label="Primary navigation">
+      <a href="/analysis.html">Analysis</a>
+      <a href="/ai-analysis.html">AI trades</a>
+      <a class="active" href="/reliability.html" aria-current="page">Reliability</a>
+      <a href="/settings.html">Settings</a>
+    </nav>
+    <div class="top-status"><span id="healthBadge">CONNECTING</span></div>
+  </header>
+  <main class="reliability-shell">
+    <header class="reliability-heading">
+      <p>LIVE QUALIFICATION EVIDENCE</p>
+      <h1>Trust is measured,<br>not assumed.</h1>
+      <span id="updatedAt">Waiting for the first health sample.</span>
+    </header>
+
+    <section class="metric-grid" aria-label="System metrics">
+      <article><span>PLATFORM</span><strong id="platformStatus">--</strong><small id="marketStatus">Market --</small></article>
+      <article><span>ANALYTICS AGE</span><strong id="analyticsAge">--</strong><small>Gate: ≤ 3 seconds</small></article>
+      <article><span>NIFTY COVERAGE</span><strong id="coverage">--</strong><small>Gate: 50 constituents</small></article>
+      <article><span>DHAN FEED</span><strong id="feedStatus">--</strong><small id="packetCount">-- packets</small></article>
+    </section>
+
+    <section class="paper-panel">
+      <div class="section-title"><div><span>PAPER EXECUTION</span><h2>Moderate risk portfolio</h2></div><b>NO REAL ORDERS</b></div>
+      <div class="paper-grid">
+        <article><span>CURRENT EQUITY</span><strong id="equity">--</strong><small>Started at ₹10,00,000</small></article>
+        <article><span>OPEN POSITIONS</span><strong id="openPositions">--</strong><small>Maximum 5</small></article>
+        <article><span>PROFIT FACTOR</span><strong id="profitFactor">--</strong><small>Qualification gate: ≥ 1.25</small></article>
+        <article><span>CLOSED RESULTS</span><strong id="closedResults">--</strong><small id="riskState">Risk controls active</small></article>
+      </div>
+    </section>
+
+    <section class="trade-panel">
+      <div class="section-title"><div><span>AUDIT TRAIL</span><h2>Latest paper trades</h2></div><b id="tradeCount">0 RECORDED</b></div>
+      <div class="trade-table-wrap">
+        <table>
+          <thead><tr><th>Symbol</th><th>Side</th><th>State</th><th>Entry</th><th>Stop</th><th>Target</th><th>Exit</th><th>Net P&amp;L</th><th>Reason</th></tr></thead>
+          <tbody id="tradeRows"><tr><td colspan="9" class="empty">No paper trades have been recorded.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -14,6 +14,8 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import tools.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 
 @Component
 public class AnalyticsWebSocketHandler extends TextWebSocketHandler {
@@ -22,9 +24,11 @@ public class AnalyticsWebSocketHandler extends TextWebSocketHandler {
     private final LiveAnalyticsService analytics;
     private final ObjectMapper objectMapper;
 
-    public AnalyticsWebSocketHandler(LiveAnalyticsService analytics, ObjectMapper objectMapper) {
+    public AnalyticsWebSocketHandler(LiveAnalyticsService analytics, ObjectMapper objectMapper,
+            MeterRegistry registry) {
         this.analytics = analytics;
         this.objectMapper = objectMapper;
+        Gauge.builder("analytics_websocket_sessions", sessions, Set::size).register(registry);
     }
 
     @Override

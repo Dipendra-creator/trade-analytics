@@ -146,6 +146,14 @@ The application can start without Dhan credentials, but historical and live inge
 
 The quant engine calculates continuously inside the application, independent of browser connections. Both analysis pages receive cached snapshots over WebSocket without controlling whether calculation runs.
 
+## Reliability and paper qualification
+
+- `/reliability.html` shows current analytics age, constituent coverage, Dhan feed state, and the paper portfolio audit trail.
+- `/api/reliability/summary`, `/api/paper/portfolio`, and `/api/paper/trades` expose the same no-store operational evidence.
+- Spring Actuator Prometheus metrics run on the private management port `9091`.
+- Paper trades use deterministic entries, stops, targets, slippage, transaction costs, position limits, a daily loss limit, and a 30-minute maximum hold. They never submit broker orders.
+- The isolated qualification stack, two-year backtester, k6 load profile, monitoring deployment, and backup drill are documented in [RELIABILITY.md](RELIABILITY.md).
+
 ## Database model
 
 Flyway runs automatically at startup and manages these tables:
