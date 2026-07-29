@@ -12,4 +12,19 @@ receivers:
         chat_id: TELEGRAM_CHAT_ID_VALUE
         send_resolved: true
         parse_mode: HTML
-        message: '{{ template "telegram.default.message" . }}'
+        message: |-
+          {{ if eq .Status "firing" }}🚨 <b>TRADE ANALYTICS ALERT</b>{{ else }}✅ <b>TRADE ANALYTICS RECOVERED</b>{{ end }}
+
+          {{ if eq .CommonLabels.severity "critical" }}🔴 <b>Severity:</b> CRITICAL{{ else if eq .CommonLabels.severity "warning" }}🟠 <b>Severity:</b> WARNING{{ else }}🔵 <b>Severity:</b> INFO{{ end }}
+          📍 <b>Environment:</b> Production
+
+          {{ range .Alerts }}<b>{{ .Labels.alertname | html }}</b>
+          {{ if .Annotations.summary }}{{ .Annotations.summary | html }}{{ end }}
+          {{ if .Annotations.description }}
+          <i>{{ .Annotations.description | html }}</i>{{ end }}
+          🕒 <b>Started:</b> {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+          {{ if eq $.Status "resolved" }}🏁 <b>Resolved:</b> {{ .EndsAt.Format "2006-01-02 15:04:05 UTC" }}{{ end }}
+          {{ end }}
+          {{ if eq .Status "firing" }}⚡ <b>Action:</b> Open the reliability dashboard and investigate now.{{ else }}🟢 <b>Status:</b> Service has returned to normal.{{ end }}
+
+          <a href="https://nse.revvlabs.tech/reliability.html">Open Reliability Dashboard</a>
