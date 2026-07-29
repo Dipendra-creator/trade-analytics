@@ -86,6 +86,36 @@ function renderCandidates(candidates) {
   }).join('');
 }
 
+async function refreshRecentTrades() {
+  try {
+    const response = await fetch('/api/paper/recent?limit=3', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const trades = await response.json();
+    const grid = byId('recentTradeGrid');
+    byId('tradeMonitorState').textContent = trades.length ? `${trades.filter(x => x.state === 'OPEN').length} open · live P&L` : 'No paper trades yet';
+    if (!trades.length) {
+      grid.innerHTML = '<div class="trade-empty">No trades have been recorded yet. The monitor will populate when a setup is opened.</div>';
+      return;
+    }
+    grid.innerHTML = trades.map(trade => {
+      const pnl = Number(trade.livePnl || 0);
+      const duration = trade.heldSeconds < 60 ? `${trade.heldSeconds}s` : `${Math.floor(trade.heldSeconds / 60)}m`;
+      return `<article class="recent-trade ${trade.state.toLowerCase()}">
+        <div class="trade-top"><h3>${escapeHtml(trade.symbol)} <span>${escapeHtml(trade.side)}</span></h3><span class="trade-state">${escapeHtml(trade.state)}</span></div>
+        <div class="trade-price-line">
+          <div><span>ENTRY</span><strong>${number(trade.entryPrice)}</strong></div>
+          <div><span>${trade.state === 'OPEN' ? 'LIVE' : 'EXIT'}</span><strong>${number(trade.currentPrice || trade.exitPrice || trade.entryPrice)}</strong></div>
+          <div><span>TARGET</span><strong>${number(trade.targetPrice)}</strong></div>
+        </div>
+        <div class="trade-progress" title="Progress toward target"><i style="width:${Math.max(0, Math.min(100, Number(trade.targetProgress || 0)))}%"></i></div>
+        <div class="trade-stats"><div><span>${trade.exitReason ? 'EXIT REASON' : 'HELD'}</span><strong>${escapeHtml(trade.exitReason || duration)}</strong></div><div><span>${trade.state === 'OPEN' ? 'LIVE P&L' : 'NET P&L'}</span><strong class="${pnl >= 0 ? 'positive' : 'negative'}">${pnl >= 0 ? '+' : '-'}₹${number(Math.abs(pnl))}</strong></div></div>
+      </article>`;
+    }).join('');
+  } catch (error) {
+    byId('tradeMonitorState').textContent = 'Trade monitor reconnecting';
+  }
+}
+
 function updateDataAge(timestamp) {
   const seconds = Math.max(0, Math.round((Date.now() - new Date(timestamp).getTime()) / 1000));
   byId('dataAge').textContent = seconds < 2 ? 'NOW' : `${seconds}s ago`;
@@ -116,4 +146,6 @@ function escapeHtml(value) {
 setInterval(() => {
   if (lastSnapshot) updateDataAge(lastSnapshot.marketDataTimestamp);
 }, 1000);
+refreshRecentTrades();
+setInterval(refreshRecentTrades, 2000);
 connect();

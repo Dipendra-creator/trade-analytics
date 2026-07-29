@@ -68,6 +68,16 @@
       </div>
     </section>
 
+    <section class="trade-monitor" aria-labelledby="tradeMonitorHeading">
+      <header class="section-heading">
+        <div><span>LIVE PAPER MONITOR</span><h2 id="tradeMonitorHeading">Previous 3 trades</h2></div>
+        <p id="tradeMonitorState">Refreshing every 2 seconds</p>
+      </header>
+      <div id="recentTradeGrid" class="recent-trade-grid" aria-live="polite">
+        <div class="trade-empty">Waiting for paper-trade history.</div>
+      </div>
+    </section>
+
     <section class="risk-panel">
       <div><span>RISK CHECK</span><h2>Before an order</h2></div>
       <p id="riskNote">Trade levels are model outputs. Verify the current quote, spread, liquidity, and position size before acting.</p>

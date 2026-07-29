@@ -17,6 +17,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+      - path: .monitoring.env
+        required: false
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-demo}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&rewriteBatchedStatements=true
       REDIS_HOST: redis

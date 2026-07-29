@@ -32,6 +32,8 @@ import com.dipendra.test.demo.stock.ai.AiAnalysisSnapshot.TradeCandidate;
 import com.dipendra.test.demo.stock.analytics.LiveAnalyticsService;
 import com.dipendra.test.demo.stock.analytics.MarketAnalyticsSnapshot;
 import com.dipendra.test.demo.stock.analytics.MarketAnalyticsSnapshot.StockImpact;
+import com.dipendra.test.demo.stock.paper.PaperTrade;
+import com.dipendra.test.demo.stock.paper.PaperTradeRepository;
 
 import tools.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
@@ -46,6 +48,7 @@ public class AiTradeAnalysisService {
 
     private final LiveAnalyticsService analytics;
     private final AppSettingsService settings;
+    private final PaperTradeRepository paperTrades;
     private final RestClient openAi;
     private final ObjectMapper objectMapper;
     private final String model;
@@ -60,7 +63,7 @@ public class AiTradeAnalysisService {
             @Value("${openai.api-base-url:https://api.openai.com}") String apiBaseUrl,
             @Value("${openai.model:gpt-4o-mini}") String model) {
         this(analytics, settings, objectMapper, apiBaseUrl, model, Duration.ofSeconds(10),
-                Duration.ofSeconds(20), Metrics.globalRegistry);
+                Duration.ofSeconds(20), Metrics.globalRegistry, null);
     }
 
     @Autowired
@@ -70,9 +73,10 @@ public class AiTradeAnalysisService {
             @Value("${openai.model:gpt-4o-mini}") String model,
             @Value("${external.connect-timeout:10s}") Duration connectTimeout,
             @Value("${external.read-timeout:20s}") Duration readTimeout,
-            MeterRegistry registry) {
+            MeterRegistry registry, PaperTradeRepository paperTrades) {
         this.analytics = analytics;
         this.settings = settings;
+        this.paperTrades = paperTrades;
         this.objectMapper = objectMapper;
         this.model = model;
         HttpClient httpClient = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
@@ -192,13 +196,16 @@ public class AiTradeAnalysisService {
     }
 
     private String buildPrompt(MarketAnalyticsSnapshot market, List<TradeCandidate> candidates) {
+        List<Map<String, Object>> recentTrades = paperTrades == null ? List.of()
+                : paperTrades.findTop100ByOrderByOpenedAtDesc().stream().limit(3).map(this::tradeEvidence).toList();
         Map<String, Object> evidence = Map.of(
                 "marketStatus", market.marketStatus(),
                 "index", market.index(),
                 "forecast", market.forecast(),
                 "breadth", market.breadth(),
                 "topSectors", market.sectors().stream().limit(5).toList(),
-                "quantCandidates", candidates);
+                "quantCandidates", candidates,
+                "previousThreeTrades", recentTrades);
         String json = objectMapper.writeValueAsString(evidence);
         return """
                 You are a cautious NSE intraday market analyst. Analyze only the supplied live quantitative evidence.
@@ -208,6 +215,18 @@ public class AiTradeAnalysisService {
                 riskNote: at most 35 words and identify the most important invalidation or concentration risk.
                 Never promise profit. State uncertainty plainly. Evidence follows:
                 """ + json;
+    }
+
+    private Map<String, Object> tradeEvidence(PaperTrade trade) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("symbol", trade.getSymbol());
+        result.put("side", trade.getSide());
+        result.put("state", trade.getState());
+        result.put("entry", trade.getEntryPrice());
+        result.put("exit", trade.getExitPrice());
+        result.put("netPnl", trade.getNetPnl());
+        result.put("exitReason", trade.getExitReason());
+        return result;
     }
 
     private Narrative parseNarrative(String text) {

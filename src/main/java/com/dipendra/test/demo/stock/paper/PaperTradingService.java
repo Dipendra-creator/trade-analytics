@@ -42,18 +42,20 @@ public class PaperTradingService {
     private final LiveAnalyticsService analytics;
     private final DhanProperties dhan;
     private final ObjectMapper objectMapper;
+    private final TelegramTradeNotifier telegram;
     private final Counter openedCounter;
     private final Counter closedCounter;
 
     public PaperTradingService(PaperTradeRepository repository, PaperTradingProperties properties,
             AiTradeAnalysisService candidates, LiveAnalyticsService analytics, DhanProperties dhan,
-            ObjectMapper objectMapper, MeterRegistry registry) {
+            ObjectMapper objectMapper, TelegramTradeNotifier telegram, MeterRegistry registry) {
         this.repository = repository;
         this.properties = properties;
         this.candidates = candidates;
         this.analytics = analytics;
         this.dhan = dhan;
         this.objectMapper = objectMapper;
+        this.telegram = telegram;
         this.openedCounter = registry.counter("paper_trades_opened_total");
         this.closedCounter = registry.counter("paper_trades_closed_total");
         Gauge.builder("paper_positions_open", repository, value -> value.countByState("OPEN"))
@@ -97,6 +99,7 @@ public class PaperTradingService {
             trade.close(now, exit, costs, reason);
             repository.save(trade);
             closedCounter.increment();
+            telegram.closed(trade);
         }
     }
 
@@ -140,6 +143,7 @@ public class PaperTradingService {
                 repository.saveAndFlush(trade);
                 open.add(trade);
                 openedCounter.increment();
+                telegram.opened(trade);
             } catch (DataIntegrityViolationException ignored) {
                 log.debug("Paper signal {} was already recorded", signalKey);
             }
@@ -183,6 +187,13 @@ public class PaperTradingService {
     }
 
     public List<PaperTrade> recentTrades() { return repository.findTop100ByOrderByOpenedAtDesc(); }
+
+    @Scheduled(fixedRate = 900_000, initialDelay = 30_000)
+    public void sendLatestTradeStatus() {
+        Map<String, Double> prices = analytics.latest().stream().flatMap(value -> value.stocks().stream())
+                .collect(Collectors.toMap(StockImpact::symbol, StockImpact::price, (a, b) -> a));
+        telegram.status(repository.findTop100ByOrderByOpenedAtDesc().stream().limit(3).toList(), prices);
+    }
 
     public record PaperPortfolio(BigDecimal startingCapital, BigDecimal currentEquity, long openPositions,
             long wins, long losses, BigDecimal profitFactor, boolean riskHalted) { }
